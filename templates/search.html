@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ query }} | Soda Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <header class="header">
+        <div class="container header-content">
+            <a href="/" class="logo">Soda Search</a>
+            <form class="search-form" action="/search" method="get">
+                <div class="search-container">
+                    <input type="text" name="query" id="search-input" class="search-input" placeholder="请输入搜索内容"
+                        value="{{ query }}">
+                    <button id="search-btn" class="search-btn" type="submit">搜索</button>
+                </div>
+            </form>
+        </div>
+    </header>
+
+    <main class="container results-container">
+        <div class="results-header">
+            <h2 class="results-title">搜索结果</h2>
+        </div>
+        <ul id="search-results" class="results-list">
+            {% if results %}
+            {% for result in results %}
+            <li class="result-item" onclick="window.open('{{ result.link }}', '_blank');">
+                <div class="result-item-content">
+                    {% if result.favicon %}
+                    <img src="{{ result.favicon }}" alt="网站图标" class="result-favicon"
+                        onerror="this.src = '/static/error.png'; this.onerror = null;">
+                    {% else %}
+                    <div class="result-favicon-placeholder"></div>
+                    {% endif %}
+                    <div class="result-info">
+                        <h3 class="result-title"><a href="{{ result.link }}" target="_blank">{{ result.title }}</a>
+                            {% if result.source_icon %}
+                            <img src="{{ result.source_icon }}" alt="{{ result.from }}" class="result-source" title="插件: {{ result.plugin_file }}">
+                            {% elif result.from == 'Bing' %}
+                            <img src="{{ url_for('static', filename='bing.svg') }}" alt="Bing" class="result-source" title="插件: {{ result.plugin_file }}">
+                            {% elif result.from == 'Bilibili' %}
+                            <img src="{{ url_for('static', filename='bilibili.svg') }}" alt="Bilibili" class="result-source" title="插件: {{ result.plugin_file }}">
+                            {% endif %}
+                            {% if result.official %}
+                            <!-- <span class="official-tag">{{ result.official }}官方</span> -->
+                            {% endif %}
+                        </h3>
+                        <span class="result-url">{{ result.link }}</span>
+                        <p class="result-snippet">{{ result.outline }}</p>
+                    </div>
+                    {% if result.pic %}
+                    <div class="result-pic">
+                        <img src="{{ result.pic }}" alt="图片" class="result-pic-image" onerror="this.style.display = 'none'; this.onerror = null;">
+                    </div>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+            {% else %}
+            <li class="result-item">
+                <p class="result-snippet">没有找到相关结果</p>
+            </li>
+            {% endif %}
+        </ul>
+    </main>
+    {% if total_pages > 0 %}
+    <div class="page-container">
+        <div class="pagination">
+            {% if page > 1 %}
+            <span class="page-item" onclick="window.location.href='/search?query={{ query }}&page={{ page-1 }}';">上一页</span>
+            {% endif %}
+            
+            {% for i in range(1, total_pages+1) %}
+            <span class="page-item {% if i == page %}active{% endif %}" onclick="window.location.href='/search?query={{ query }}&page={{ i }}';">{{ i }}</span>
+            {% endfor %}
+            
+            {% if page < total_pages %}
+            <span class="page-item" onclick="window.location.href='/search?query={{ query }}&page={{ page+1 }}';">下一页</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</body>
+
+</html>

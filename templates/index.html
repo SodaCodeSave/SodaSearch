@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soda Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="home-container">
+        <h1 class="home-logo">Soda Search</h1>
+        <form class="home-search-form" action="/search" method="get">
+            <div class="search-container">
+                <input type="text" name="query" id="search-input" class="search-input" placeholder="请输入搜索内容" value="">
+                <button id="search-btn" class="search-btn" type="submit">搜索</button>
+            </div>
+        </form>
+        
+        <div class="plugins-section">
+            <button class="plugins-toggle-btn" id="pluginsToggle">
+                <span class="toggle-text">插件设置</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <form class="plugins-settings" id="pluginsSettings" action="/plugins_settings" method="post">
+                <h2>插件设置</h2>
+                <ul class="plugins-list">
+                    {% for plugin_name, enabled in plugins_config.items() %}
+                    <li class="plugin-item">
+                        <span class="plugin-name">{{ plugin_name }}</span>
+                        <label class="plugin-toggle">
+                            <input type="checkbox" name="plugin_{{ plugin_name }}" {% if enabled %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <button type="submit" class="save-btn">保存设置</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const pluginsSection = document.querySelector('.plugins-section');
+            const pluginsToggle = document.getElementById('pluginsToggle');
+            
+            pluginsSection.classList.add('collapsed');
+            
+            pluginsToggle.addEventListener('click', function() {
+                pluginsSection.classList.toggle('collapsed');
+                const isCollapsed = pluginsSection.classList.contains('collapsed');
+            });
+        });
+    </script>
+</body>
+
+</html>
