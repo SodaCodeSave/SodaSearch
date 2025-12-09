@@ -1,12 +1,8 @@
-import urllib
-import time
 import json
-import re
 import os
 import importlib.util
 from flask import Flask, render_template, request, redirect, url_for
 import requests
-from lxml import etree
 from urllib.parse import urlparse
 
 app = Flask(__name__)
@@ -153,49 +149,76 @@ def proxy_image():
         print(f"图片代理失败: {e}")
         return redirect(url_for('static', filename='error.png'))
 
+def perform_search(query, page=1):
+    if not query:
+        return [], 0
+    
+    import time
+    current_time = int(time.time())
+    
+    all_results = []
+    
+    for plugin in plugins:
+        try:
+            plugin_results = plugin['get_results'](query)
+            
+            for result in plugin_results:
+                if all(key in result for key in ['title', 'link', 'outline', 'favicon', 'from']):
+                    if 'score' not in result:
+                        result['score'] = 70
+                    result['plugin_file'] = plugin['name'] + '.py'
+                    
+                    if 'pic' in result and result['pic']:
+                        from urllib.parse import quote
+                        result['pic'] = f'/proxy/image?url={quote(result["pic"])}'
+                    
+                    all_results.append(result)
+        except Exception as e:
+            print(f"调用插件 {plugin['name']} 失败: {e}")
+    
+    all_results.sort(key=lambda x: x.get('score', 0), reverse=True)
+    
+    per_page = 10
+    total_results = len(all_results)
+    total_pages = (total_results + per_page - 1) // per_page
+    
+    page = max(1, min(page, total_pages))
+    
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_results = all_results[start:end]
+    
+    return paginated_results, total_pages
+
 @app.route('/search', methods=['GET'])
 def search():
     query = request.args.get('query')
     page = int(request.args.get('page', 1))
-    if query:
-        import time
-        current_time = int(time.time())
-        
-        all_results = []
-        
-        for plugin in plugins:
-            try:
-                plugin_results = plugin['get_results'](query)
-                
-                for result in plugin_results:
-                    if all(key in result for key in ['title', 'link', 'outline', 'favicon', 'from']):
-                        if 'score' not in result:
-                            result['score'] = 70
-                        result['plugin_file'] = plugin['name'] + '.py'
-                        
-                        if 'pic' in result and result['pic']:
-                            from urllib.parse import quote
-                            result['pic'] = f'/proxy/image?url={quote(result["pic"])}'
-                        
-                        all_results.append(result)
-            except Exception as e:
-                print(f"调用插件 {plugin['name']} 失败: {e}")
-        
-        all_results.sort(key=lambda x: x.get('score', 0), reverse=True)
-        
-        per_page = 10
-        total_results = len(all_results)
-        total_pages = (total_results + per_page - 1) // per_page
-        
-        page = max(1, min(page, total_pages))
-        
-        start = (page - 1) * per_page
-        end = start + per_page
-        paginated_results = all_results[start:end]
-    else:
-        paginated_results = []
-        total_pages = 0
+    
+    paginated_results, total_pages = perform_search(query, page)
+    
     return render_template('search.html', query=query, results=paginated_results, page=page, total_pages=total_pages)
+
+@app.route('/api/search', methods=['GET'])
+def api_search():
+    query = request.args.get('query')
+    page = int(request.args.get('page', 1))
+    
+    paginated_results, total_pages = perform_search(query, page)
+    
+    response = {
+        'success': True,
+        'query': query,
+        'page': page,
+        'total_pages': total_pages,
+        'results': paginated_results
+    }
+    
+    return app.response_class(
+        response=json.dumps(response, ensure_ascii=False),
+        status=200,
+        mimetype='application/json'
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
